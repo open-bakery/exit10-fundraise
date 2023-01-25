@@ -1,3 +1,3 @@
-# Template for Smart Contract Development
+# Whitelist Mintable Token. 
 
-A basic clone template for smart contract development - Foundry, Prettier, Solhint, Makefile and Openzeppelin Library
+A Contract which accepts a contribution token from a whitelisted address in exchange for a secondary token.
