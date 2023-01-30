@@ -6,79 +6,107 @@ import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
 import '@openzeppelin/contracts/utils/math/Math.sol';
 
-contract Minter is ERC20, Ownable {
+import './interfaces/IMinter.sol';
+
+contract Minter is IMinter, ERC20, Ownable {
   using SafeERC20 for ERC20;
   using Math for uint;
 
   struct Investor {
-    bool whitelisted;
     uint cap;
     uint deposited;
   }
 
-  address public depositToken;
-  uint public price;
-  uint public constant SUPPLY_CAP = 100_000 ether;
-  uint public constant EARLY_BACKERS_SUPPLY = 50_000 ether;
+  address public immutable DEPOSIT_TOKEN;
+  uint public immutable MIN_INVESTMENT_AMOUNT;
+  uint public constant EARLY_BACKERS_SUPPLY = 150_000 ether;
+  uint public constant TEAM_SUPPLY = 150_000 ether;
+  uint public constant SUPPLY_CAP = EARLY_BACKERS_SUPPLY + TEAM_SUPPLY;
+
+  bool public isActive = true;
 
   mapping(address => Investor) public investor;
 
-  constructor(string memory name_, string memory symbol_, address depositToken_) ERC20(name_, symbol_) {
-    depositToken = depositToken_;
+  constructor(DeployParams memory params) ERC20(params.name, params.symbol) {
+    DEPOSIT_TOKEN = params.depositToken;
+    MIN_INVESTMENT_AMOUNT = params.minInvestmentAmount;
+    _mint(msg.sender, TEAM_SUPPLY);
   }
 
-  function getInvestor(address user) external view returns (bool whitelist, uint cap, uint deposited) {
-    Investor memory inv = investor[user];
-    whitelist = inv.whitelisted;
-    cap = inv.cap;
-    deposited = inv.deposited;
-  }
+  function whitelistOrEditCap(address user, uint cap) external onlyOwner {
+    _requireMinimumInvestmentAmount(cap);
 
-  function addInvestor(address user, uint cap) external onlyOwner {
-    Investor memory inv = investor[user];
-    require(!inv.whitelisted, 'Minter: User already whitelisted');
-    inv.whitelisted = true;
-    inv.cap = cap;
-    investor[user] = inv;
-  }
-
-  function editCap(address user, uint cap) external onlyOwner {
-    Investor memory inv = investor[user];
+    Investor storage inv = investor[user];
     require(inv.deposited <= cap, 'Minter: Cap must be higher than deposited amount');
+    require(inv.cap != cap, 'Minter: Cap already set');
+
     inv.cap = cap;
-    investor[user] = inv;
   }
 
-  function removeWhitelistAndRefund(address user) external onlyOwner {
-    Investor memory inv = investor[user];
-    // inv.whitelisted = false;
-    if (inv.deposited != 0) _safeRefund(user);
-    delete investor[user];
-    //investor[user] = inv;
+  function closeRaise() external onlyOwner {
+    _closeRaise();
+    uint remainingToMint = SUPPLY_CAP - totalSupply();
+    _mint(msg.sender, remainingToMint);
   }
 
   function deposit(uint amount) external {
-    Investor memory inv = investor[msg.sender];
-    require(inv.whitelisted, 'Minter: User not whitelisted');
-    require(inv.deposited != inv.cap, 'Minter: Cap already reached');
+    require(isActive, 'Minter: Raise is no longer active');
 
-    uint depositAmount = (amount + inv.deposited) > inv.cap ? Math.min(inv.cap - inv.deposited, amount) : amount;
-    require(ERC20(depositToken).balanceOf(msg.sender) >= depositAmount, 'Minter: Not enough to deposit');
+    Investor storage inv = investor[msg.sender];
+    if (inv.deposited == 0) _requireMinimumInvestmentAmount(amount);
 
-    // For tests
-    assert(depositAmount + inv.deposited <= inv.cap);
+    require(inv.cap != 0, 'Minter: User not whitelisted');
+    require(inv.deposited != inv.cap, 'Minter: Investor cap already reached');
 
-    ERC20(depositToken).safeTransferFrom(msg.sender, address(this), depositAmount);
+    (uint depositAmount, uint mintAmount) = _validateDepositAmount(amount, inv.deposited, inv.cap);
+
+    if (totalSupply() + mintAmount == SUPPLY_CAP) _closeRaise();
+
+    ERC20(DEPOSIT_TOKEN).safeTransferFrom(msg.sender, address(this), depositAmount);
     inv.deposited += depositAmount;
-    investor[msg.sender] = inv;
 
-    _mint(msg.sender, depositAmount);
+    _mint(msg.sender, mintAmount);
   }
 
-  function _safeRefund(address _user) internal {
-    Investor storage inv = investor[_user];
-    uint refundAmount = inv.deposited;
-    inv.deposited = 0;
-    ERC20(depositToken).safeTransfer(_user, Math.min(refundAmount, ERC20(depositToken).balanceOf(address(this))));
+  function pullFunds() external onlyOwner {
+    ERC20(DEPOSIT_TOKEN).safeTransfer(msg.sender, ERC20(DEPOSIT_TOKEN).balanceOf(address(this)));
+  }
+
+  function _requireMinimumInvestmentAmount(uint _amount) internal view {
+    require(_amount >= MIN_INVESTMENT_AMOUNT, 'Minter: Amount must be higher than minimum investment amount');
+  }
+
+  function _validateDepositAmount(
+    uint _amount,
+    uint _prevDeposited,
+    uint _cap
+  ) internal view returns (uint _validatedDepositAmount, uint _mintAmount) {
+    // Checks to see if user has already deposited before and is not overflowing their cap
+    // If cap is overflown only deposit up to the cap.
+    _validatedDepositAmount = _validateMaximumAllowed(_amount, _prevDeposited, _cap);
+
+    // Checks if user can mint all the tokens from the depositAmount without going over maximum supply
+    uint cacheAmountToMint = (_validatedDepositAmount * decimals()) / ERC20(DEPOSIT_TOKEN).decimals();
+    _mintAmount = _validateMaximumAllowed(cacheAmountToMint, totalSupply(), SUPPLY_CAP);
+
+    // If user has gone over the maxSupply, recalculate the depositAmount
+    _validatedDepositAmount = (cacheAmountToMint != _mintAmount)
+      ? (_mintAmount * ERC20(DEPOSIT_TOKEN).decimals()) / decimals()
+      : _validatedDepositAmount;
+  }
+
+  function _validateMaximumAllowed(
+    uint _inputAmount,
+    uint _currentAmount,
+    uint _maximumAmount
+  ) internal pure returns (uint _maximumAllowed) {
+    _maximumAllowed = _inputAmount + _currentAmount > _maximumAmount
+      ? Math.min(_maximumAmount - _currentAmount, _inputAmount)
+      : _inputAmount;
+  }
+
+  function _closeRaise() internal {
+    require(isActive, 'Minter: Raise already closed');
+    isActive = false;
   }
 }
