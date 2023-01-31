@@ -18,14 +18,22 @@ contract Minter is IMinter, ERC20, Ownable {
   }
 
   address public immutable DEPOSIT_TOKEN;
+
   uint public immutable MIN_INVESTMENT_AMOUNT;
   uint public constant EARLY_BACKERS_SUPPLY = 150_000 ether;
   uint public constant TEAM_SUPPLY = 150_000 ether;
   uint public constant SUPPLY_CAP = EARLY_BACKERS_SUPPLY + TEAM_SUPPLY;
+  uint public totalRaised;
 
   bool public isActive = true;
 
   mapping(address => Investor) public investor;
+
+  event Whitelisted(address indexed user, uint cap);
+  event WhitelistRemoved(address indexed user);
+  event RaiseClosed(uint totalRaised);
+  event Deposit(address indexed user, uint depositAmount, uint mintedAmount);
+  event FundsPulled(address indexed recipient, uint amount);
 
   constructor(DeployParams memory params) ERC20(params.name, params.symbol) {
     DEPOSIT_TOKEN = params.depositToken;
@@ -41,6 +49,12 @@ contract Minter is IMinter, ERC20, Ownable {
     require(inv.cap != cap, 'Minter: Cap already set');
 
     inv.cap = cap;
+
+    if (cap != 0) {
+      emit Whitelisted(user, cap);
+    } else {
+      emit WhitelistRemoved(user);
+    }
   }
 
   function closeRaise() external onlyOwner {
@@ -64,17 +78,23 @@ contract Minter is IMinter, ERC20, Ownable {
 
     ERC20(DEPOSIT_TOKEN).safeTransferFrom(msg.sender, address(this), depositAmount);
     inv.deposited += depositAmount;
+    totalRaised += depositAmount;
 
     _mint(msg.sender, mintAmount);
+
+    emit Deposit(msg.sender, depositAmount, mintAmount);
   }
 
   function pullFunds(address recipient) external onlyOwner {
-    ERC20(DEPOSIT_TOKEN).safeTransfer(recipient, ERC20(DEPOSIT_TOKEN).balanceOf(address(this)));
+    uint amount = ERC20(DEPOSIT_TOKEN).balanceOf(address(this));
+    ERC20(DEPOSIT_TOKEN).safeTransfer(recipient, amount);
+    emit FundsPulled(recipient, amount);
   }
 
   function _closeRaise() internal {
     require(isActive, 'Minter: Raise already closed');
     isActive = false;
+    emit RaiseClosed(totalRaised);
   }
 
   function _requireMinimumInvestmentAmount(uint _amount) internal view {

@@ -149,6 +149,17 @@ contract MinterTest is Test {
     assertTrue(minter.balanceOf(user) == 10_000 ether + minter.TEAM_SUPPLY(), 'STO balance check');
   }
 
+  function testTotalRaised() public {
+    address user = address(this);
+    uint cap = _tokenAmount(10_000, depositToken);
+    uint amount = _tokenAmount(1_000, depositToken);
+    minter.whitelistOrEditCap(user, cap);
+    minter.deposit(amount);
+    assertTrue(minter.totalRaised() == amount, 'Total raised check');
+    minter.deposit(amount);
+    assertTrue(minter.totalRaised() == amount * 2, 'Total raised check');
+  }
+
   function _checkInvestor(address _user, uint _cap, uint _deposited) internal {
     (uint cp, uint dp) = minter.investor(_user);
     assertTrue(_cap == cp, 'Cap check');
