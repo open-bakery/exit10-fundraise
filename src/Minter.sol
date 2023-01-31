@@ -8,6 +8,8 @@ import '@openzeppelin/contracts/utils/math/Math.sol';
 
 import './interfaces/IMinter.sol';
 
+import 'forge-std/Test.sol';
+
 contract Minter is IMinter, ERC20, Ownable {
   using SafeERC20 for ERC20;
   using Math for uint;
@@ -86,12 +88,12 @@ contract Minter is IMinter, ERC20, Ownable {
     _validatedDepositAmount = _validateMaximumAllowed(_amount, _prevDeposited, _cap);
 
     // Checks if user can mint all the tokens from the depositAmount without going over maximum supply
-    uint cacheAmountToMint = (_validatedDepositAmount * decimals()) / ERC20(DEPOSIT_TOKEN).decimals();
+    uint cacheAmountToMint = (_validatedDepositAmount * 10 ** decimals()) / 10 ** ERC20(DEPOSIT_TOKEN).decimals();
     _mintAmount = _validateMaximumAllowed(cacheAmountToMint, totalSupply(), SUPPLY_CAP);
 
     // If user has gone over the maxSupply, recalculate the depositAmount
     _validatedDepositAmount = (cacheAmountToMint != _mintAmount)
-      ? (_mintAmount * ERC20(DEPOSIT_TOKEN).decimals()) / decimals()
+      ? (_mintAmount * 10 ** ERC20(DEPOSIT_TOKEN).decimals()) / 10 ** decimals()
       : _validatedDepositAmount;
   }
 
