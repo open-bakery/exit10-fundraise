@@ -8,8 +8,6 @@ import '@openzeppelin/contracts/utils/math/Math.sol';
 
 import './interfaces/IMinter.sol';
 
-import 'forge-std/Test.sol';
-
 contract Minter is IMinter, ERC20, Ownable {
   using SafeERC20 for ERC20;
   using Math for uint;
@@ -74,6 +72,11 @@ contract Minter is IMinter, ERC20, Ownable {
     ERC20(DEPOSIT_TOKEN).safeTransfer(recipient, ERC20(DEPOSIT_TOKEN).balanceOf(address(this)));
   }
 
+  function _closeRaise() internal {
+    require(isActive, 'Minter: Raise already closed');
+    isActive = false;
+  }
+
   function _requireMinimumInvestmentAmount(uint _amount) internal view {
     require(_amount >= MIN_INVESTMENT_AMOUNT, 'Minter: Amount must be higher than minimum investment amount');
   }
@@ -105,10 +108,5 @@ contract Minter is IMinter, ERC20, Ownable {
     _maximumAllowed = _inputAmount + _currentAmount > _maximumAmount
       ? Math.min(_maximumAmount - _currentAmount, _inputAmount)
       : _inputAmount;
-  }
-
-  function _closeRaise() internal {
-    require(isActive, 'Minter: Raise already closed');
-    isActive = false;
   }
 }

@@ -9,7 +9,7 @@ import '../src/mock/USDC.sol';
 contract MinterTest is Test {
   Minter public minter;
   address public depositToken;
-  uint constant SUPPLY = 100_000 ether;
+  uint constant SUPPLY = 100_000_000000;
 
   IMinter.DeployParams params;
 
@@ -47,6 +47,16 @@ contract MinterTest is Test {
     minter.whitelistOrEditCap(user, cap);
   }
 
+  function testChangeCapAfterDepositRevert() public {
+    address user = address(this);
+    uint amount = _tokenAmount(2_000, depositToken);
+    uint cap = _tokenAmount(10_000, depositToken);
+    minter.whitelistOrEditCap(user, cap);
+    minter.deposit(amount);
+    vm.expectRevert(bytes('Minter: Cap must be higher than deposited amount'));
+    minter.whitelistOrEditCap(user, 1_000_000000);
+  }
+
   function testChangeCap() public {
     address user = address(0x01);
     uint cap = _tokenAmount(10_000, depositToken);
@@ -61,29 +71,29 @@ contract MinterTest is Test {
   }
 
   function testDepositAfterCloseRaiseRevert() public {
-    uint amount = 10_000_000000;
+    uint amount = _tokenAmount(10_000, depositToken);
     minter.closeRaise();
     vm.expectRevert(bytes('Minter: Raise is no longer active'));
     minter.deposit(amount);
   }
 
   function testDepositNonWhitelistRevert() public {
-    uint amount = 10_000_000000;
+    uint amount = _tokenAmount(10_000, depositToken);
     vm.expectRevert(bytes('Minter: User not whitelisted'));
     minter.deposit(amount);
   }
 
   function testDepositMinInvestmentAmountRevert() public {
-    uint cap = 1000_000000;
-    uint amount = 100_000000;
+    uint cap = _tokenAmount(1_000, depositToken);
+    uint amount = _tokenAmount(100, depositToken);
     minter.whitelistOrEditCap(address(this), cap);
     vm.expectRevert(bytes('Minter: Amount must be higher than minimum investment amount'));
     minter.deposit(amount);
   }
 
   function testInvestorCapReachedRevert() public {
-    uint cap = 1000_000000;
-    uint amount = 1000_000000;
+    uint cap = _tokenAmount(1_000, depositToken);
+    uint amount = _tokenAmount(1_000, depositToken);
     minter.whitelistOrEditCap(address(this), cap);
     minter.deposit(amount);
     vm.expectRevert(bytes('Minter: Investor cap already reached'));
@@ -92,8 +102,8 @@ contract MinterTest is Test {
 
   function testMintedAmount() public {
     address user = address(0x01);
-    uint cap = 1000_000000;
-    uint amount = 1000_000000;
+    uint cap = _tokenAmount(1_000, depositToken);
+    uint amount = _tokenAmount(1_000, depositToken);
     _depositFlow(user, cap, amount);
     assertTrue(minter.balanceOf(address(user)) == 1_000 ether, 'STO balance check');
   }
@@ -101,8 +111,8 @@ contract MinterTest is Test {
   function testPartialMint() public {
     address user = address(0x01);
     uint initialBalance = type(uint).max;
-    uint cap = 10_000_000000;
-    uint amount = 1000_000000;
+    uint cap = _tokenAmount(10_000, depositToken);
+    uint amount = _tokenAmount(1_000, depositToken);
     _depositFlow(user, cap, amount);
     _checkInvestor(user, cap, amount);
     vm.startPrank(user);
@@ -114,14 +124,29 @@ contract MinterTest is Test {
     assertTrue(ERC20(depositToken).balanceOf(address(user)) == initialBalance - cap);
   }
 
-  function checkPullFunds() public {
+  function testPullFunds() public {
     address recipient = address(0x01);
-    uint cap = 10_000_000000;
-    uint amount = 10_000_000000;
+    uint cap = _tokenAmount(10_000, depositToken);
+    uint amount = _tokenAmount(10_000, depositToken);
     minter.whitelistOrEditCap(address(this), cap);
     minter.deposit(amount);
     minter.pullFunds(recipient);
-    assertTrue(ERC20(depositToken).balanceOf(recipient) == 10_000 ether);
+    assertTrue(
+      ERC20(depositToken).balanceOf(recipient) == _tokenAmount(10_000, depositToken),
+      'Deposit token balance check'
+    );
+  }
+
+  function testDepositAboveCap() public {
+    address user = address(this);
+    uint initialBalance = ERC20(depositToken).balanceOf(user);
+    uint cap = _tokenAmount(10_000, depositToken);
+    uint amount = initialBalance;
+    minter.whitelistOrEditCap(user, cap);
+    minter.deposit(amount);
+    _checkInvestor(user, cap, cap);
+    assertTrue(ERC20(depositToken).balanceOf(user) == amount - cap, 'Deposit token balance check');
+    assertTrue(minter.balanceOf(user) == 10_000 ether + minter.TEAM_SUPPLY(), 'STO balance check');
   }
 
   function _checkInvestor(address _user, uint _cap, uint _deposited) internal {
