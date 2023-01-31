@@ -92,8 +92,36 @@ contract MinterTest is Test {
 
   function testMintedAmount() public {
     address user = address(0x01);
-    _depositFlow(user);
-    assertTrue(ERC20(minter).balanceOf(address(user)) == 1_000 ether, 'STO balance check');
+    uint cap = 1000_000000;
+    uint amount = 1000_000000;
+    _depositFlow(user, cap, amount);
+    assertTrue(minter.balanceOf(address(user)) == 1_000 ether, 'STO balance check');
+  }
+
+  function testPartialMint() public {
+    address user = address(0x01);
+    uint initialBalance = type(uint).max;
+    uint cap = 10_000_000000;
+    uint amount = 1000_000000;
+    _depositFlow(user, cap, amount);
+    _checkInvestor(user, cap, amount);
+    vm.startPrank(user);
+    minter.deposit(amount);
+    _checkInvestor(user, cap, amount * 2);
+    minter.deposit(cap);
+    _checkInvestor(user, cap, cap);
+    assertTrue(minter.balanceOf(address(user)) == 10_000 ether, 'STO balance check');
+    assertTrue(ERC20(depositToken).balanceOf(address(user)) == initialBalance - cap);
+  }
+
+  function checkPullFunds() public {
+    address recipient = address(0x01);
+    uint cap = 10_000_000000;
+    uint amount = 10_000_000000;
+    minter.whitelistOrEditCap(address(this), cap);
+    minter.deposit(amount);
+    minter.pullFunds(recipient);
+    assertTrue(ERC20(depositToken).balanceOf(recipient) == 10_000 ether);
   }
 
   function _checkInvestor(address _user, uint _cap, uint _deposited) internal {
@@ -106,14 +134,12 @@ contract MinterTest is Test {
     return _amountWithNoDecimals * 10 ** ERC20(_token).decimals();
   }
 
-  function _depositFlow(address _user) internal {
-    uint cap = 1000_000000;
-    uint amount = 1000_000000;
-    minter.whitelistOrEditCap(_user, cap);
-    deal(depositToken, _user, amount);
+  function _depositFlow(address _user, uint _cap, uint _amount) internal {
+    minter.whitelistOrEditCap(_user, _cap);
+    deal(depositToken, _user, type(uint).max);
     vm.startPrank(_user);
     ERC20(depositToken).approve(address(minter), type(uint).max);
-    minter.deposit(amount);
+    minter.deposit(_amount);
     vm.stopPrank();
   }
 }

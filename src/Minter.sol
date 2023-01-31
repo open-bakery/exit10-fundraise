@@ -70,8 +70,8 @@ contract Minter is IMinter, ERC20, Ownable {
     _mint(msg.sender, mintAmount);
   }
 
-  function pullFunds() external onlyOwner {
-    ERC20(DEPOSIT_TOKEN).safeTransfer(msg.sender, ERC20(DEPOSIT_TOKEN).balanceOf(address(this)));
+  function pullFunds(address recipient) external onlyOwner {
+    ERC20(DEPOSIT_TOKEN).safeTransfer(recipient, ERC20(DEPOSIT_TOKEN).balanceOf(address(this)));
   }
 
   function _requireMinimumInvestmentAmount(uint _amount) internal view {
