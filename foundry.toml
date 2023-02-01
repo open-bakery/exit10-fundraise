@@ -4,3 +4,7 @@ out = 'out'
 libs = ['lib']
 auto_detect_solc = true
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config
+[rpc_endpoints]
+arbitrum = "${ARBITRUM_ONE_RPC_URL}"
+[etherscan]
+arbitrum = { key = "${ETHERSCAN_API_KEY}" }

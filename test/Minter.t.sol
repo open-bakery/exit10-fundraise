@@ -25,6 +25,13 @@ contract MinterTest is Test {
     ERC20(depositToken).approve(address(minter), type(uint256).max);
   }
 
+  function testConstants() public {
+    assertTrue(params.minInvestmentAmount == minter.MIN_INVESTMENT_AMOUNT(), 'MIN_INVESTMENT_AMOUNT Check');
+    assertTrue(150_000 ether == minter.EARLY_BACKERS_SUPPLY(), 'EARLY_BACKERS_SUPPLY Check');
+    assertTrue(150_000 ether == minter.TEAM_SUPPLY(), 'TEAM_SUPPLY Check');
+    assertTrue(300_000 ether == minter.SUPPLY_CAP(), 'SUPPLY_CAP Check');
+  }
+
   function testDeployment() public {
     assertTrue(keccak256(abi.encodePacked(minter.name())) == keccak256(abi.encodePacked('Share Tokens')), 'Name Check');
     assertTrue(keccak256(abi.encodePacked(minter.symbol())) == keccak256(abi.encodePacked('STO')), 'Symbol Check');
