@@ -4,3 +4,5 @@ yarn.lock
 out/
 cache/
 broadcast/
+# IDE
+.idea
