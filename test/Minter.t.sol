@@ -77,6 +77,14 @@ contract MinterTest is Test {
     assertTrue(ERC20(minter).balanceOf(address(this)) == 300_000 ether, 'Team balance check');
   }
 
+  function testAutomatedCloseRaiseWhenCapReached() public {
+    uint cap = _tokenAmount(150_000, depositToken);
+    uint amount = _tokenAmount(150_000, depositToken);
+    address user = address(0x01);
+    _depositFlow(user, cap, amount);
+    assertFalse(minter.isActive(), 'STO raise closed check');
+  }
+
   function testDepositAfterCloseRaiseRevert() public {
     uint amount = _tokenAmount(10_000, depositToken);
     minter.closeRaise();
@@ -137,6 +145,20 @@ contract MinterTest is Test {
     uint amount = _tokenAmount(10_000, depositToken);
     minter.whitelistOrEditCap(address(this), cap);
     minter.deposit(amount);
+    minter.pullFunds(recipient);
+    assertTrue(
+      ERC20(depositToken).balanceOf(recipient) == _tokenAmount(10_000, depositToken),
+      'Deposit token balance check'
+    );
+  }
+
+  function testPullFundsWhenRaiseClosed() public {
+    address user = address(0x01);
+    address recipient = address(0x02);
+    uint amount = _tokenAmount(10_000, depositToken);
+    _depositFlow(user, amount, amount);
+
+    minter.closeRaise();
     minter.pullFunds(recipient);
     assertTrue(
       ERC20(depositToken).balanceOf(recipient) == _tokenAmount(10_000, depositToken),
