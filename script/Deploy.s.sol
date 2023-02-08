@@ -4,7 +4,7 @@ pragma solidity ^0.8.13;
 import 'forge-std/Script.sol';
 import '../src/Minter.sol';
 
-contract MinterScript is Script {
+contract DeployScript is Script {
   Minter public minter;
   IMinter.DeployParams params;
 

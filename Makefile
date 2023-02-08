@@ -3,13 +3,13 @@
 -include .env
 
 deploy-arbitrum:
-	forge script script/Minter.s.sol:MinterScript --rpc-url $(ARBITRUM_ONE_RPC_URL)  --private-key $(PRIVATE_KEY) --broadcast --verify
+	forge script script/Deploy.s.sol:DeployScript --rpc-url $(ARBITRUM_ONE_RPC_URL)  --private-key $(PRIVATE_KEY) --broadcast --verify
 
 deploy-arbitrum-goerli:
-	forge script script/Minter.s.sol:MinterScript --rpc-url $(ARBITRUN_TESTNET)  --private-key $(PRIVATE_KEY) --broadcast --verify
+	forge script script/Deploy.s.sol:DeployScript --rpc-url $(ARBITRUN_TESTNET)  --private-key $(PRIVATE_KEY) --broadcast --verify
 
 deploy-test:
-	forge script script/Minter.s.sol:MinterScript --fork-url http://localhost:8545 --private-key $(PRIVATE_KEY) --broadcast
+	forge script script/Deploy.s.sol:DeployScript --fork-url http://localhost:8545 --private-key $(PRIVATE_KEY) --broadcast
 
 dev:
 	forge script script/DeployDev.s.sol:DeployDev --fork-url http://localhost:8545 --private-key $(PRIVATE_KEY) --broadcast
