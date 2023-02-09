@@ -3,7 +3,7 @@
 -include .env
 
 deploy-arbitrum:
-	forge script script/Deploy.s.sol:DeployScript --rpc-url $(ARBITRUM_ONE_RPC_URL) --private-key $(PRIVATE_KEY) --broadcast --verify --etherscan-api-key $(ETHERSCAN_API_KEY) --verifier-url $(ARBISCAN)
+	forge script script/DeployMainnet.s.sol:DeployMainnetScript --rpc-url $(ARBITRUM_ONE_RPC_URL) --private-key $(PRIVATE_KEY) --broadcast --verify --etherscan-api-key $(ETHERSCAN_API_KEY) --verifier-url $(ARBISCAN)
 
 deploy-arbitrum-goerli:
 	forge script script/DeployDev.s.sol:DeployDevScript --rpc-url $(ARBITRUM_TESTNET) --private-key $(PRIVATE_KEY_TESTNET) --broadcast --verify --etherscan-api-key $(ETHERSCAN_API_KEY) --verifier-url $(ARBISCAN_GOERLI)
