@@ -5,12 +5,12 @@ import './ScriptCommon.sol';
 import '../src/Minter.sol';
 import '../src/mock/USDC.sol';
 
-contract DeployDev is ScriptCommon {
+contract DeployDevScript is ScriptCommon {
   Minter public minter;
   USDC public usdc;
 
   function run() public {
-    uint256 deployerKey = vm.envUint('PRIVATE_KEY');
+    uint256 deployerKey = vm.envUint('PRIVATE_KEY_TESTNET');
     uint256 aliceKey = vm.envUint('ALICE_KEY');
     uint256 bobKey = vm.envUint('BOB_KEY');
     uint256 charlieKey = vm.envUint('CHARLIE_KEY');
@@ -29,10 +29,6 @@ contract DeployDev is ScriptCommon {
     // deploy
     vm.startBroadcast(deployerKey);
     usdc = new USDC(usdcAmount(1_000_000));
-    usdc.transfer(aliceAddress, usdcAmount(100_000));
-    usdc.transfer(bobAddress, usdcAmount(100_000));
-    usdc.transfer(charlieAddress, usdcAmount(100_000));
-    usdc.transfer(daveAddress, usdcAmount(100_000));
     IMinter.DeployParams memory params = IMinter.DeployParams({
       name: vm.envString('NAME'),
       symbol: vm.envString('SYMBOL'),
@@ -40,6 +36,10 @@ contract DeployDev is ScriptCommon {
       minInvestmentAmount: vm.envUint('MIN_INVESTMENT_AMOUNT')
     });
     minter = new Minter(params);
+    usdc.transfer(aliceAddress, usdcAmount(100_000));
+    usdc.transfer(bobAddress, usdcAmount(100_000));
+    usdc.transfer(charlieAddress, usdcAmount(100_000));
+    usdc.transfer(daveAddress, usdcAmount(100_000));
     writeAddress('usdc', address(usdc));
     writeAddress('minter', address(minter));
     minter.whitelistOrEditCap(bobAddress, usdcAmount(10_000));
