@@ -83,9 +83,9 @@ contract Minter is IMinter, ERC20, Ownable {
     emit Deposit(msg.sender, depositAmount, mintAmount);
   }
 
-  function pullFunds(address recipient) external onlyOwner {
-    uint amount = ERC20(DEPOSIT_TOKEN).balanceOf(address(this));
-    ERC20(DEPOSIT_TOKEN).safeTransfer(recipient, amount);
+  function pullFunds(address recipient, address token) external onlyOwner {
+    uint amount = ERC20(token).balanceOf(address(this));
+    ERC20(token).safeTransfer(recipient, amount);
     emit FundsPulled(recipient, amount);
   }
 

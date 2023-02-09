@@ -145,7 +145,7 @@ contract MinterTest is Test {
     uint amount = _tokenAmount(10_000, depositToken);
     minter.whitelistOrEditCap(address(this), cap);
     minter.deposit(amount);
-    minter.pullFunds(recipient);
+    minter.pullFunds(recipient, depositToken);
     assertTrue(
       ERC20(depositToken).balanceOf(recipient) == _tokenAmount(10_000, depositToken),
       'Deposit token balance check'
@@ -159,7 +159,7 @@ contract MinterTest is Test {
     _depositFlow(user, amount, amount);
 
     minter.closeRaise();
-    minter.pullFunds(recipient);
+    minter.pullFunds(recipient, depositToken);
     assertTrue(
       ERC20(depositToken).balanceOf(recipient) == _tokenAmount(10_000, depositToken),
       'Deposit token balance check'
