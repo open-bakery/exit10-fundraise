@@ -8,6 +8,9 @@ deploy-arbitrum:
 deploy-arbitrum-goerli:
 	forge script script/DeployDev.s.sol:DeployDevScript --rpc-url $(ARBITRUM_TESTNET) --private-key $(PRIVATE_KEY_TESTNET) --broadcast --verify --etherscan-api-key $(ETHERSCAN_API_KEY) --verifier-url $(ARBISCAN_GOERLI)
 
+dev-mainnet:
+	forge script script/DeployMainnet.s.sol:DeployMainnetScript --fork-url http://localhost:8545 --private-key $(PRIVATE_KEY_TESTNET) --broadcast
+
 dev:
 	forge script script/DeployDev.s.sol:DeployDevScript --fork-url http://localhost:8545 --private-key $(PRIVATE_KEY_TESTNET) --broadcast
 
@@ -21,4 +24,4 @@ trace:
 	forge test -vv
 
 # Verify Contracts
-#forge verify-contract --chain-id 421613 --watch --constructor-args $(cast abi-encode "constructor((string,string,address,uint256))" "("Share" "Token","STO",0x7646C4D45f48541C425Cb768c0e6A1bEdF5Ca806,1000000)") 0xC6D279aa6Af324b809dDEC2f771609b72a6daa5E src/Minter.sol:Minter QSWEZY6SZZ213F5748W3U7MKUAR7GGI7YB --verifier-url "https://api-goerli.arbiscan.io/api"
+#forge verify-contract --chain-id 42161 --watch --constructor-args $(cast abi-encode "constructor((string,string,address,uint256))" "("Share" "Token","STO",0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8,1000000000)") 0xb428cC8Fe759D79037355138cc0987F65f704587 src/Minter.sol:Minter QSWEZY6SZZ213F5748W3U7MKUAR7GGI7YB --verifier-url "https://api.arbiscan.io/api"
